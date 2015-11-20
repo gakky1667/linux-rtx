@@ -1,0 +1,1 @@
+cmd_/home/gakky/workspace/git/linux-rtx/core/resch.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/gakky/workspace/git/linux-rtx/core/resch.ko /home/gakky/workspace/git/linux-rtx/core/resch.o /home/gakky/workspace/git/linux-rtx/core/resch.mod.o

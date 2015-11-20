@@ -1,8 +1,7 @@
 /*
- * sched_edf.c		Copyright (C) Shinpei Kato
+ * sched_dag.c		Copyright (C) Shinpei Kato
  *
- * EDF scheduler implementation for RESCH.
- * This implementation is used when SCHED_DEADLINE is NOT supported.
+ * DAG scheduler implementation for RESCH.
  */
 
 #include <resch-core.h>
@@ -11,14 +10,13 @@
 /**
  * set the scheduler internally in the Linux kernel.
  */
-static int edf_set_scheduler(resch_task_t *rt, int prio)
+static int dag_set_scheduler(resch_task_t *rt, int prio)
 {
-	RESCH_DPRINT("SCHED_EDF\n");
 	struct sched_param sp;
 	sp.sched_priority = prio;
-	printk(KERN_WARNING "RESCH: SCHED_EDF\n"); 
+	printk(KERN_WARNING "RESCH: SCHED_DAG\n"); 
 	if (sched_setscheduler(rt->task, SCHED_FIFO, &sp) < 0) {
-		printk(KERN_WARNING "RESCH: edf_change_prio() failed.\n");
+		printk(KERN_WARNING "RESCH: dag_change_prio() failed.\n");
 		printk(KERN_WARNING "RESCH: task#%d (process#%d) priority=%d.\n",
 			   rt->rid, rt->task->pid, prio);
 		return false;
@@ -29,10 +27,10 @@ static int edf_set_scheduler(resch_task_t *rt, int prio)
 }
 
 /**
- * insert the given task into the active queue according to the EDF policy.
+ * insert the given task into the active queue according to the DAG policy.
  * the active queue must be locked.
  */
-static void edf_enqueue_task(resch_task_t *rt, int prio, int cpu)
+static void dag_enqueue_task(resch_task_t *rt, int prio, int cpu)
 {
 	int idx = prio_index(prio);
 	struct prio_array *active = &lo[cpu].active;
@@ -63,7 +61,7 @@ static void edf_enqueue_task(resch_task_t *rt, int prio, int cpu)
  * remove the given task from the active queue.
  * the active queue must be locked.
  */
-static void edf_dequeue_task(resch_task_t *rt, int prio, int cpu)
+static void dag_dequeue_task(resch_task_t *rt, int prio, int cpu)
 {
 	int idx = prio_index(prio);
 	struct prio_array *active = &lo[cpu].active;
@@ -79,7 +77,7 @@ static void edf_dequeue_task(resch_task_t *rt, int prio, int cpu)
 /**
  * called when the given task starts a new job.
  */
-static void edf_job_start(resch_task_t *rt)
+static void dag_job_start(resch_task_t *rt)
 {
 	unsigned long flags;
 	int cpu = rt->cpu_id;
@@ -87,7 +85,7 @@ static void edf_job_start(resch_task_t *rt)
 
 	active_queue_lock(cpu, &flags);
 
-	edf_enqueue_task(rt, RESCH_PRIO_EDF, cpu);
+	dag_enqueue_task(rt, RESCH_PRIO_DAG, cpu);
 	hp = active_highest_prio_task(cpu);
 	if (rt == hp) {
 		resch_task_t *curr = active_next_prio_task(rt);
@@ -106,7 +104,7 @@ static void edf_job_start(resch_task_t *rt)
 /**
  * complete the current job of the given task.
  */
-static void edf_job_complete(resch_task_t *rt)
+static void dag_job_complete(resch_task_t *rt)
 {
 	int cpu = rt->cpu_id;
 	int prio = rt->prio;
@@ -115,7 +113,7 @@ static void edf_job_complete(resch_task_t *rt)
 
 	active_queue_lock(cpu, &flags);
 
-	edf_dequeue_task(rt, prio, cpu);
+	dag_dequeue_task(rt, prio, cpu);
 	rt->prio = RESCH_PRIO_EDF;
 	next = active_highest_prio_task(cpu);
 
@@ -126,7 +124,7 @@ static void edf_job_complete(resch_task_t *rt)
 	}
 }
 
-static void edf_start_account(resch_task_t *rt)
+static void dag_start_account(resch_task_t *rt)
 {
 #ifdef NO_LINUX_LOAD_BALANCE
 	setup_timer_on_stack(&rt->expire_timer, expire_handler, (unsigned long)rt);
@@ -138,7 +136,7 @@ static void edf_start_account(resch_task_t *rt)
 #endif
 }
 
-static void edf_stop_account(resch_task_t *rt)
+static void dag_stop_account(resch_task_t *rt)
 {
 #ifdef NO_LINUX_LOAD_BALANCE
 	del_timer_sync(&rt->expire_timer);
@@ -148,7 +146,7 @@ static void edf_stop_account(resch_task_t *rt)
 #endif
 }
 
-static void edf_reserve_expire(resch_task_t *rt)
+static void dag_reserve_expire(resch_task_t *rt)
 {
 	unsigned long flags;
 	int cpu = rt->cpu_id;
@@ -163,8 +161,8 @@ static void edf_reserve_expire(resch_task_t *rt)
 		resch_task_t *next;
 
 		/* move to the background queue. */
-		edf_dequeue_task(rt, prio, cpu);
-		edf_enqueue_task(rt, RESCH_PRIO_BACKGROUND, cpu);
+		dag_dequeue_task(rt, prio, cpu);
+		dag_enqueue_task(rt, RESCH_PRIO_BACKGROUND, cpu);
 		/* next is never NULL. */
 		next = active_highest_prio_task(cpu);
 		if (rt == next) {
@@ -178,7 +176,7 @@ static void edf_reserve_expire(resch_task_t *rt)
 	}
 }
 
-static void edf_reserve_replenish(resch_task_t *rt, unsigned long cputime)
+static void dag_reserve_replenish(resch_task_t *rt, unsigned long cputime)
 {
 	int cpu = rt->cpu_id;
 	unsigned long flags;
@@ -186,8 +184,8 @@ static void edf_reserve_replenish(resch_task_t *rt, unsigned long cputime)
 	rt->budget += cputime;
 	active_queue_lock(cpu, &flags);
 	if (rt->prio == RESCH_PRIO_BACKGROUND && task_is_active(rt)) {
-		edf_dequeue_task(rt, RESCH_PRIO_BACKGROUND, cpu);
-		edf_enqueue_task(rt, RESCH_PRIO_EDF, cpu);
+		dag_dequeue_task(rt, RESCH_PRIO_BACKGROUND, cpu);
+		dag_enqueue_task(rt, RESCH_PRIO_DAG, cpu);
 		if (rt == active_highest_prio_task(cpu) && 
 			rt->task->state == TASK_INTERRUPTIBLE) {
 			resch_task_t *p = active_next_prio_task(rt);
@@ -209,7 +207,7 @@ static void edf_reserve_replenish(resch_task_t *rt, unsigned long cputime)
 /**
  * migrate @rt to the given CPU. 
  */
-static void edf_migrate_task(resch_task_t *rt, int cpu_dst)
+static void dag_migrate_task(resch_task_t *rt, int cpu_dst)
 {
 	unsigned long flags;
 	int cpu_src = rt->cpu_id;
@@ -227,14 +225,14 @@ static void edf_migrate_task(resch_task_t *rt, int cpu_dst)
 			preempt_out(rt);
 #endif
 			/* move off the source CPU. */
-			edf_dequeue_task(rt, rt->prio, cpu_src);
+			dag_dequeue_task(rt, rt->prio, cpu_src);
 
 			/* save the current task on the destination CPU. */
 			curr_dst = active_prio_task(cpu_dst, RESCH_PRIO_EDF_RUN);
 
 			/* move on the destination CPU. */
 			rt->cpu_id = cpu_dst; 
-			edf_enqueue_task(rt, rt->prio, cpu_dst);
+			dag_enqueue_task(rt, rt->prio, cpu_dst);
 
 #ifdef NO_LINUX_LOAD_BALANCE
 			/* trace preemption. */
@@ -251,8 +249,8 @@ static void edf_migrate_task(resch_task_t *rt, int cpu_dst)
 
 			/* restart accounting on the new CPU. */
 			if (task_is_accounting(rt)) {
-				edf_stop_account(rt);
-				edf_start_account(rt);
+				dag_stop_account(rt);
+				dag_start_account(rt);
 			}
 
 			if (curr_dst) {
@@ -280,7 +278,7 @@ static void edf_migrate_task(resch_task_t *rt, int cpu_dst)
 /**
  * wait until the next period.
  */
-static void edf_wait_period(resch_task_t *rt)
+static void dag_wait_period(resch_task_t *rt)
 {
 	if (rt->release_time > jiffies) {
 		rt->task->state = TASK_UNINTERRUPTIBLE;
@@ -291,17 +289,17 @@ static void edf_wait_period(resch_task_t *rt)
 	}
 }
 
-/* EDF scheduling class. */
-static const struct resch_sched_class edf_sched_class = {
-	.set_scheduler		= edf_set_scheduler,
-	.enqueue_task		= edf_enqueue_task,
-	.dequeue_task		= edf_dequeue_task,
-	.job_start			= edf_job_start,
-	.job_complete		= edf_job_complete,
-	.start_account		= edf_start_account,
-	.stop_account		= edf_stop_account,
-	.reserve_expire		= edf_reserve_expire,
-	.reserve_replenish	= edf_reserve_replenish,
-	.migrate_task		= edf_migrate_task,
-	.wait_period		= edf_wait_period,
+/* DAG scheduling class. */
+static const struct resch_sched_class dag_sched_class = {
+	.set_scheduler		= dag_set_scheduler,
+	.enqueue_task		= dag_enqueue_task,
+	.dequeue_task		= dag_dequeue_task,
+	.job_start			= dag_job_start,
+	.job_complete		= dag_job_complete,
+	.start_account		= dag_start_account,
+	.stop_account		= dag_stop_account,
+	.reserve_expire		= dag_reserve_expire,
+	.reserve_replenish	= dag_reserve_replenish,
+	.migrate_task		= dag_migrate_task,
+	.wait_period		= dag_wait_period,
 };

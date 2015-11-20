@@ -53,7 +53,8 @@ int cuda_test_madd(unsigned int n, char *path, int prio);
 
 struct timespec period, runtime, timeout, deadline;
 
-	unsigned long prio;
+	int  prio; // GPU task priority
+
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void* thread(void *args)
 {
@@ -89,9 +90,9 @@ int main(int argc, char* argv[])
 	int dmiss_count = 0;
 	pthread_t th[100];
 
-	if (argc != 5) {
+	if (argc != 6) {
 		printf("Error: invalid option\n");
-		printf("usage: rt_task period runtime deadline task_num\n");
+		printf("usage: rt_task period runtime deadline task_num priority\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -106,10 +107,10 @@ int main(int argc, char* argv[])
 	//printf("---- timeout:%d ms ----\n", 30000);
 	timeout = ms_to_timespec(3000);			/* timeout. */
 #endif
-	prio = getpid();
-	struct timespec ts1,ts2,ts3;
 
+	struct timespec ts1,ts2,ts3;
 	task_num = atoi(argv[4]); 
+	prio = atoi(argv[5]);
 
 	int cpu;
 	cpu_set_t set;

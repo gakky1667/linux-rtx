@@ -94,7 +94,7 @@ int rtx_gpu_device_advice(struct rtxGhandle **arg)
 
 
 #define DEV_NVIDIA_CTL "/dev/nvidiactl"
-int rtx_gpu_open(struct rtxGhandle **arg, unsigned int dev_id, unsigned int vdev_id)
+int rtx_gpu_open(struct rtxGhandle **arg, unsigned int dev_id, unsigned int vdev_id, int rtxg_gpu_prio)
 {
     int ret;
     struct rtxGhandle *handle;
@@ -118,6 +118,9 @@ int rtx_gpu_open(struct rtxGhandle **arg, unsigned int dev_id, unsigned int vdev
     handle->nvdesc = NULL;
     handle->sync_flag = DEFAULT_GSYNC_FLAG;
     //handle->sync_flag =GSYNC_FENCE_SPIN;
+
+/* gakky add */
+//		handle->rtxg_prio = rtxg_gpu_prio;
 
     if ((ret = __rtx_gpu_ioctl(GDEV_IOCTL_CTX_CREATE, (unsigned long)handle))<0){
     	return -ENODEV;

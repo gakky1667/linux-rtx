@@ -11,6 +11,7 @@ static int fp_set_scheduler(resch_task_t *rt, int prio)
 {
 	struct sched_param sp;
 	sp.sched_priority = prio;
+	printk(KERN_WARNING "RESCH: SCHED_FP\n"); 
 	if (sched_setscheduler(rt->task, SCHED_FIFO, &sp) < 0) {
 		printk(KERN_WARNING "RESCH: fp_change_prio() failed.\n");
 		printk(KERN_WARNING "RESCH: task#%d (process#%d) prio=%d.\n",

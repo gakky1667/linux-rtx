@@ -7,6 +7,7 @@
 #define SCHED_FAIR	0
 #define SCHED_FP	1
 #define SCHED_EDF	2
+#define SCHED_DAG 3
 
 /* available priority range. */
 #define RESCH_APP_PRIO_MAX	96

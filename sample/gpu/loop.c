@@ -56,7 +56,7 @@ static inline void tvsub(struct timeval *x,
     }
 }
 
-int cuda_test_madd(unsigned int n, char *path, int loop_count)
+int cuda_test_madd(unsigned int n, char *path, int prio)
 {
     struct rtxGhandle *handle;
  
@@ -127,12 +127,12 @@ int cuda_test_madd(unsigned int n, char *path, int loop_count)
     }
 #ifndef DISABLE_SCHED_GPU
     handle = NULL;
-    if((res = rtx_gpu_open(&handle, 0, 0)) < 0){
+    if((res = rtx_gpu_open(&handle, 0, 0, prio)) < 0){
 	printf("rtx_gpu_open failed: res = %lu\n", (unsigned long)res);
     }
 #endif
 #ifndef DISABLE_SCHED_CPU
-    rt_set_priority(loop_count);
+    rt_set_priority(prio);
     rt_set_scheduler(SCHED_FP); /* you can also set SCHED_EDF. */
     timeout = ms_to_timespec(1);
     rt_run(timeout);

@@ -402,6 +402,7 @@ struct gdev_device {
     gdev_lock_t vas_lock;
     gdev_lock_t global_lock;
     gdev_mutex_t shm_mutex;
+		int gdev_prio; // gakky add
     //gdev_mem_t *swap; /* reserved swap memory space */
     struct tasklet_struct *wakeup_tasklet_t;
     void *wakeup_thread;

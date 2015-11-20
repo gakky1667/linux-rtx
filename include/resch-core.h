@@ -13,11 +13,13 @@
 #define RESCH_PRIO_KTHREAD 		(RESCH_PRIO_MAX)
 #define RESCH_PRIO_EDF 			(RESCH_PRIO_BACKGROUND + 1)
 #define RESCH_PRIO_EDF_RUN 		(RESCH_PRIO_EDF + 1)
+#define RESCH_PRIO_DAG      (RESCH_PRIO_EDF_RUN + 1) 
 
 /* supported scheduling policies. */
 #define RESCH_SCHED_FAIR	0
 #define RESCH_SCHED_FP		1
 #define RESCH_SCHED_EDF		2
+#define RESCH_SCHED_DAG   3 
 
 /* used if tasks are not assigned a particular CPU. */
 #define RESCH_CPU_UNDEFINED NR_RT_CPUS

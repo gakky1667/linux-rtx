@@ -22,13 +22,18 @@ static struct timespec ms_to_timespec(unsigned long ms)
 int main(int argc, char* argv[])
 {
 	int i;
-	unsigned long prio;
+	unsigned long prio, policy=1;
 	struct timespec period, runtime, timeout;
 	struct timeval tv1, tv2, tv3;
 
-	if (argc != 3) {
+	if (argc != 4) {
 		printf("Error: invalid option\n");
+		printf("usage: prio period policy\n");
+		/* You should valid "#define SCHED_DAG" if use SCHED_DAG*/
+		printf("policy\n1 : SCHED_FP\n2 : SCHED_EDF\n3 : SCHED_DAG\n"); 
+		exit(EXIT_FAILURE);
 	}
+
 	prio = atoi(argv[1]);					/* priority. */
 	period = ms_to_timespec(atoi(argv[2]));	/* period. */
 	runtime = ms_to_timespec(1000);			/* execution time. */
@@ -37,10 +42,29 @@ int main(int argc, char* argv[])
 	/* bannar. */
 	printf("sample program\n");
 
+	switch(atoi(argv[3])){
+		case SCHED_FP:
+			policy = SCHED_FP;  //SCHED_FP = 1 
+			printf("scheduling policy = SCHED_FP\n\n");
+			break;
+		case SCHED_EDF:
+			policy = SCHED_EDF; //SCHED_EDF = 2
+			printf("scheduling policy = SCHED_EDF\n\n");
+			break;	
+		case SCHED_DAG:
+			policy = SCHED_DAG; //SCHED_DAG = 3
+			printf("scheduling policy = SCHED_DAG\n\n");
+			break;
+		default:
+			policy = SCHED_FP;
+			printf("scheduling policy = SCHED_FP\n\n");
+		break;
+	}
+
 	rt_init(); 
 	rt_set_period(period);
 	rt_set_runtime(runtime);
-	rt_set_scheduler(SCHED_FP); /* you can also set SCHED_EDF. */
+	rt_set_scheduler(policy); /* you can also set SCHED_EDF & SCHED_DAG */
 	rt_set_priority(prio);
 	rt_run(timeout);
 

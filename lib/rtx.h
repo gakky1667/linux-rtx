@@ -4,6 +4,7 @@
 /* currently two scheduling policies are supported. */
 #define RTX_SCHED_FP	0
 #define	RTX_SCHED_EDF	1
+#define RTX_SCHED_DAG 2 
 
 /******************************* AIRS *******************************/
 #if defined(AIRS)
@@ -41,6 +42,9 @@ static inline void rtx_set_scheduler(struct timespec deadline,
 	case RTX_SCHED_EDF:
 		rt_set_scheduler(SCHED_EDF);
 		break;
+	case RTX_SCHED_DAG: 
+		rt_set_scheduler(SCHED_DAG);
+		break;
 	default:
 		printf("Error: unknown scheduling policy.\n");
 	}
@@ -69,6 +73,7 @@ static inline void rtx_run(struct timespec timeout)
 #define __NR_sched_getparam_ex          301
 #define __NR_sched_wait_interval        302
 #define SCHED_DEADLINE 6
+#define SCHED_DEADLINE_DAG 7
 struct sched_param_ex {
 	int sched_priority;
 	struct timespec sched_runtime;

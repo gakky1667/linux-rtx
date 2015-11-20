@@ -62,7 +62,8 @@ unsigned long cid_bitmap[100];
 extern struct resch_irq_desc **resch_desc; 
 extern struct gdev_list list_irq_wait_head;
 
-struct rtxGhandle{
+/* gakky add extern and rtxg_prio */
+extern struct rtxGhandle{
     uint32_t dev_id;
     uint32_t vdev_id;
     uint32_t cid;
@@ -71,6 +72,7 @@ struct rtxGhandle{
     uint8_t sched_flag;
     uint32_t setcid;
     uint8_t sync_flag;
+		int rtxg_prio;
 };
 
 #define PICKUP_GPU_MIN 0x1
@@ -105,7 +107,9 @@ struct gdev_sched_entity* gdev_sched_entity_create(struct gdev_device *gdev, uin
     se->gdev = gdev;
     se->task = NULL;//current;
     se->ctx = cid;
-    
+  
+		/* gakky add */
+//		se->prio = gdev->rtxg_prio;
     se->prio = gdev->id * 30;
     // se->prio = current->static_prio;
     se->rt_prio = current->static_prio;
@@ -322,6 +326,9 @@ int gsched_ctxcreate(unsigned long arg)
 
     dev = &gdev_vds[vgid];
     phys = dev->parent;
+
+/* gakky add */
+		dev->gdev_prio = h->rtxg_prio;
 
     if(phys){
 retry:

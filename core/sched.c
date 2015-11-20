@@ -27,6 +27,10 @@
 #include "sched.h"
 #include "test.h"
 
+/* If you use SCHED_DAG, you valid "#define SCHED_DAG" 
+ * then you don't SCHED_EDF */
+#define SCHED_DAG
+
 /**
  * RESCH task descriptor. 
  */
@@ -495,9 +499,17 @@ static inline int deadline_miss(resch_task_t *rt)
 #include "sched_fair.c"
 #include "sched_fp.c"
 #ifdef SCHED_DEADLINE
-#include "sched_deadline.c"
+#ifdef SCHED_DAG
+ 		#include "sched_deadline_dag.c"  
 #else
-#include "sched_edf.c"
+		#include "sched_deadline.c"
+#endif
+#else
+#ifdef SCHED_DAG
+		#include "sched_dag.c"           
+#else
+		#include "sched_edf.c"
+#endif
 #endif
 
 /**
@@ -583,14 +595,24 @@ int set_scheduler(resch_task_t *rt, int policy, int prio)
 			break;
 
 		case RESCH_SCHED_EDF:
+#ifndef SCHED_DAG
 			rt->policy = RESCH_SCHED_EDF;
 			rt->class = &edf_sched_class;
+#endif
 			break;
 
 		case RESCH_SCHED_FAIR:
 			rt->policy = RESCH_SCHED_FAIR;
 			rt->class = &fair_sched_class;
 			break;
+
+		case RESCH_SCHED_DAG: 
+#ifdef SCHED_DAG
+			rt->policy = RESCH_SCHED_DAG;
+			rt->class = &dag_sched_class;
+#endif
+			break;
+
 
 		default:
 			printk(KERN_WARNING "RESCH: unknown scheduler.\n");
@@ -1235,8 +1257,9 @@ int api_set_priority(int rid, unsigned long prio)
 {
 	resch_task_t *rt = resch_task_ptr(rid);
 
-	/* dont allow to set the priority for the EDF and FAIR schedulers. */
-	if (rt->policy == RESCH_SCHED_EDF || rt->policy == RESCH_SCHED_FAIR) {
+	/* dont allow to set the priority for the EDF and FAIR and DAG schedulers. */
+	/* whether dag priority is valided or not */
+	if (rt->policy == RESCH_SCHED_EDF || rt->policy == RESCH_SCHED_FAIR ||rt->policy == RESCH_SCHED_DAG){
 		return RES_FAULT;
 	}
 

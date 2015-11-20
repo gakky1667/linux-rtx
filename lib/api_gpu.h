@@ -50,6 +50,7 @@ struct rtxGhandle{
     uint8_t sched_flag;
     uint32_t setcid;
     uint8_t sync_flag;
+		int rtxg_prio;
 };
 
 /************************************************************
@@ -58,7 +59,7 @@ struct rtxGhandle{
 
 int rtx_gpu_init(void);
 int rtx_gpu_exit(void);
-int rtx_gpu_open(struct rtxGhandle **arg, unsigned int dev_id, unsigned int vdev_id);
+int rtx_gpu_open(struct rtxGhandle **arg, unsigned int dev_id, unsigned int vdev_id,int rtxg_prio);
 int rtx_gpu_launch(struct rtxGhandle **arg);
 int rtx_gpu_sync(struct rtxGhandle **arg);
 int rtx_gpu_close(struct rtxGhandle **arg);
